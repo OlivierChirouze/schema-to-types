@@ -1,0 +1,13 @@
+{
+  "name": "schema-to-types",
+  "version": "1.0.0",
+  "dependencies": {
+    "@types/node": "^14.14.7",
+    "simpl-schema": "^1.10.2",
+    "ts-morph": "^8.1.2"
+  },
+  "devDependencies": {
+    "@types/simpl-schema": "^0.2.9",
+    "ts-node": "^9.0.0"
+  }
+}
