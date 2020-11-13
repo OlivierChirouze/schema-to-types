@@ -8,7 +8,14 @@ import {
 import SimpleSchema, { SchemaDefinition } from "simpl-schema";
 import { SchemaMap } from "./schema-map";
 
+class TypeNotFoundError extends Error {
+  constructor(public typeName: string) {
+    super();
+  }
+}
+
 export class SchemaImport {
+  private static readonly _tmpDir = "./.temp";
   private schemas: SchemaMap;
 
   constructor(private tsConfigFilePath: string) {}
@@ -24,11 +31,7 @@ export class SchemaImport {
       throw new Error("File not found!");
     }
 
-    // TODO safer
-    const importPath = schemaFile
-      .getEmitOutput()
-      .getOutputFiles()[0]
-      .getFilePath();
+    const importPath = this.getImportPath(schemaFile);
 
     import(importPath).then(importedModule => {
       this.schemas = importedModule["schemas"];
@@ -36,8 +39,7 @@ export class SchemaImport {
         overwrite: true
       });
 
-      // TODO add comment "is generated file"
-
+      // TODO add comment "is a generated file"
       for (let typeName in this.schemas) {
         const schema = this.schemas[typeName];
         const classDeclaration = sourceFile.addInterface({
@@ -48,13 +50,18 @@ export class SchemaImport {
 
         const keys = schema.objectKeys("");
         keys.forEach((key, i) => {
-          //valid.optional;
-
-          const declaration = this.getDeclaration(key, schema);
-          if (declaration) {
+          try {
+            const declaration = this.getDeclaration(key, schema);
             classDeclaration.addProperty(declaration);
-          } else {
-            // classDeclaration.
+          } catch (e) {
+            if (e instanceof TypeNotFoundError) {
+              // Ignore and don't put in the interface
+              console.error(
+                `Type not found - ignoring property: ${typeName}.${e.typeName}`
+              );
+            } else {
+              throw e;
+            }
           }
         });
       }
@@ -79,7 +86,6 @@ export class SchemaImport {
           statement.declarations[0].type === "SchemaMap"
         ) {
           const declaration = statement.declarations[0];
-          console.log(`Found variable! ${declaration.name}`);
           return true;
         }
       }
@@ -96,11 +102,6 @@ export class SchemaImport {
     const rawType = valid.type[0].type;
 
     const type = this.getType(rawType, name, schema);
-
-    if (type === undefined) {
-      console.error(`No proper type found for ${name}`);
-      return undefined;
-    }
 
     let declaration: OptionalKind<PropertySignatureStructure> = {
       name: name,
@@ -145,20 +146,37 @@ export class SchemaImport {
       return `${subDeclaration.type}[]`;
     }
 
+    // TODO support enums
     // TODO support multiple rules with | types
     // TODO support exp
 
     // This must be related to another schema
-    return this.getTypeName(rawType);
+    return this.getTypeName(name, rawType);
   }
 
-  private getTypeName(simpleSchema: SimpleSchema): string | undefined {
+  private getTypeName(
+    name: string,
+    simpleSchema: SimpleSchema
+  ): string | undefined {
     for (let typeName in this.schemas) {
       const schema = this.schemas[typeName];
       if (simpleSchema === schema) {
         return typeName;
       }
     }
-    return undefined;
+    throw new TypeNotFoundError(name);
+  }
+
+  private getImportPath(schemaFile: SourceFile) {
+    // TODO Very unefficient, but works
+    const project = new Project({
+      compilerOptions: { outDir: SchemaImport._tmpDir }
+    });
+    const copyFile = project.addSourceFileAtPath(schemaFile.getFilePath());
+    project.emitSync();
+    return copyFile
+      .getEmitOutput()
+      .getOutputFiles()[0]
+      .getFilePath();
   }
 }
