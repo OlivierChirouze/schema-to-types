@@ -1,9 +1,7 @@
-import SimpleSchema from "simpl-schema";
-import { SchemaMap, allowSchemaExtension } from "../src/schema-map";
+import { SchemaMap, SimpleSchema } from "../src/schema-map";
 import { MyEnum } from "./models/model";
 
 export const schemas: SchemaMap = {};
-allowSchemaExtension(); // Needed for typeName to be accepted
 
 schemas["SubType"] = new SimpleSchema({
   aNumber: {
