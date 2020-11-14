@@ -2,7 +2,7 @@
   "name": "schema-to-types",
   "version": "1.0.0",
   "scripts": {
-    "generate-test-model": "ts-node src/update-model.ts tsconfig.json test/models/generated-model.ts"
+    "generate-test-model": "ts-node src/update-model.ts tsconfig.json example/models/generated-model.ts"
   },
   "dependencies": {
     "@types/node": "^14.14.7",
