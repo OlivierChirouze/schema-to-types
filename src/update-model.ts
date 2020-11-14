@@ -1,5 +1,7 @@
 #!/usr/bin/env ts-node-script
 
+// Usage: script <tsConfig path> <outputFile path>
+
 import { SchemaImport } from "./schema-import";
 
 const myArgs = process.argv.slice(2);

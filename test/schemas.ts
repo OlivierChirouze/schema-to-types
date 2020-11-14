@@ -1,7 +1,9 @@
 import SimpleSchema from "simpl-schema";
-import { SchemaMap } from "../src/schema-map";
+import { SchemaMap, allowSchemaExtension } from "../src/schema-map";
+import { MyEnum } from "./models/model";
 
 export const schemas: SchemaMap = {};
+allowSchemaExtension();
 
 schemas["SubType"] = new SimpleSchema({
   aNumber: {
@@ -29,5 +31,14 @@ schemas["Foo"] = new SimpleSchema({
     type: String,
     // Not used for the moment
     defaultValue: "schemas"
+  },
+  anEnum: {
+    type: MyEnum,
+    optional: true
+  },
+  anEnumWithType: {
+    type: MyEnum,
+    // @ts-ignore
+    typeName: 'MyEnum'
   }
 });

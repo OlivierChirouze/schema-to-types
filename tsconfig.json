@@ -10,7 +10,7 @@
     "experimentalDecorators": true,
     "resolveJsonModule": true,
     "importHelpers": true,
-    "target": "es2015",
+    "target": "es2018",
     "outDir": "dist",
     "typeRoots": [
       "node_modules/@types"

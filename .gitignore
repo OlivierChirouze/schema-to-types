@@ -105,3 +105,4 @@ dist
 
 # Compilation dir
 /dist/
+/.tmp

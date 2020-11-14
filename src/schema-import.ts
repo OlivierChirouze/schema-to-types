@@ -1,4 +1,5 @@
 import {
+  ImportDeclarationStructure,
   OptionalKind,
   Project,
   PropertySignatureStructure,
@@ -7,6 +8,8 @@ import {
 } from "ts-morph";
 import SimpleSchema, { SchemaDefinition } from "simpl-schema";
 import { SchemaMap } from "./schema-map";
+import { from } from "rxjs";
+import { tap } from "rxjs/operators";
 
 class TypeNotFoundError extends Error {
   constructor(public typeName: string) {
@@ -14,8 +17,11 @@ class TypeNotFoundError extends Error {
   }
 }
 
+// Type name might have been defined explicitly
+type ExtendedSchemaDefinition = SchemaDefinition & { typeName?: string };
+
 export class SchemaImport {
-  private static readonly _tmpDir = "./.temp";
+  private static readonly _tmpDir = "./.tmp";
   private schemas: SchemaMap;
 
   constructor(private tsConfigFilePath: string) {}
@@ -25,90 +31,123 @@ export class SchemaImport {
       tsConfigFilePath: this.tsConfigFilePath
     });
 
-    const schemaFile = this.getSchemasFile(project);
+    const mapNameAndFile = this.getSchemaMapNameAndFile(project);
 
-    if (!schemaFile) {
+    if (!mapNameAndFile) {
       throw new Error("File not found!");
     }
 
-    const importPath = this.getImportPath(schemaFile);
-
-    import(importPath).then(importedModule => {
-      this.schemas = importedModule["schemas"];
-      const sourceFile = project.createSourceFile(outputFilePath, "", {
-        overwrite: true
-      });
-
-      // TODO add comment "is a generated file"
-      for (let typeName in this.schemas) {
-        const schema = this.schemas[typeName];
-        const classDeclaration = sourceFile.addInterface({
-          name: typeName
-        });
-
-        classDeclaration.setIsExported(true);
-
-        const keys = schema.objectKeys("");
-        keys.forEach((key, i) => {
-          try {
-            const declaration = this.getDeclaration(key, schema);
-            classDeclaration.addProperty(declaration);
-          } catch (e) {
-            if (e instanceof TypeNotFoundError) {
-              // Ignore and don't put in the interface
-              console.error(
-                `Type not found - ignoring property: ${typeName}.${e.typeName}`
-              );
-            } else {
-              throw e;
-            }
-          }
-        });
-      }
-
-      sourceFile.formatText();
-      sourceFile.save();
-
-      console.log(`File saved: ${sourceFile.getFilePath()}`);
+    const outputFile = project.createSourceFile(outputFilePath, "", {
+      overwrite: true
     });
+
+    // Import all the imports that exist in the original file, not related to simpl-schema
+    const imports: (OptionalKind<ImportDeclarationStructure> & {
+      source: SourceFile;
+    })[] = mapNameAndFile.source
+      .getImportDeclarations()
+      .map(d => ({
+        namedImports: d
+          .getNamedImports()
+          .map(i => i.getName())
+          .filter(s => s !== "SchemaMap"),
+        moduleSpecifier:
+          "./" +
+          outputFile
+            .getRelativePathTo(d.getModuleSpecifierSourceFile())
+            // TS2691: An import path cannot end with a '.ts' extension.
+            .replace(/\.ts$/, ""),
+        source: d.getModuleSpecifierSourceFile()
+      }))
+      .filter(i => i.namedImports.length > 0);
+
+    outputFile.addImportDeclarations(imports);
+
+    const importPath = this.getImportPath(mapNameAndFile.source);
+
+    const importSchemas = from(import(importPath));
+    //const otherImports = imports.map(i => from(import(i.source.getFilePath())));
+
+    importSchemas
+      .pipe(
+        tap(importedModule => {
+          this.schemas = importedModule[mapNameAndFile.name];
+
+          // TODO add comment "is a generated file"
+          for (let typeName in this.schemas) {
+            const schema = this.schemas[typeName];
+            const classDeclaration = outputFile.addInterface({
+              name: typeName
+            });
+
+            mapNameAndFile.source.getStructure();
+
+            classDeclaration.setIsExported(true);
+
+            const keys = schema.objectKeys("");
+            keys.forEach((key, i) => {
+              const declaration = this.getDeclaration(key, schema);
+              classDeclaration.addProperty(declaration);
+            });
+          }
+
+          outputFile.organizeImports();
+
+          outputFile.formatText();
+          outputFile.save();
+
+          console.log(`File saved: ${outputFile.getFilePath()}`);
+        })
+      )
+      .subscribe();
   }
 
-  private getSchemasFile(project: Project): SourceFile | undefined {
-    return project.getSourceFile(file => {
+  private getSchemaMapNameAndFile(
+    project: Project
+  ): { name: string; source: SourceFile } | undefined {
+    const files = project.getSourceFiles();
+    for (let iFile = 0; iFile < files.length; iFile++) {
+      let file = files[iFile];
       const statements = file.getStructure().statements as any[];
-      for (let i = 0; i < statements.length; i++) {
-        let statement = statements[i];
+      for (let iStatement = 0; iStatement < statements.length; iStatement++) {
+        let statement = statements[iStatement];
         if (
           statement.kind === StructureKind.VariableStatement &&
           statement.isExported &&
           statement.declarations &&
-          statement.declarations.length === 1 &&
-          statement.declarations[0].type === "SchemaMap"
+          statement.declarations.length > 0
         ) {
-          const declaration = statement.declarations[0];
-          return true;
+          const schemaMap = statement.declarations.filter(
+            declaration => declaration.type === "SchemaMap"
+          );
+          if (schemaMap.length === 1) {
+            return {
+              name: schemaMap[0].name,
+              source: file
+            };
+          }
         }
       }
-      return false;
-    });
+    }
+    return undefined;
   }
 
   private getDeclaration(
     name: string,
     schema: SimpleSchema
   ): OptionalKind<PropertySignatureStructure> | undefined {
-    const valid = schema.getDefinition(name) as SchemaDefinition;
+    const schemaDefinition = schema.getDefinition(
+      name
+    ) as ExtendedSchemaDefinition;
 
-    const rawType = valid.type[0].type;
-
-    const type = this.getType(rawType, name, schema);
+    const type = this.getType(schemaDefinition, name, schema);
 
     let declaration: OptionalKind<PropertySignatureStructure> = {
       name: name,
       type,
       hasQuestionToken:
-        valid.optional === true ||
-        (valid.optional !== false && valid.optional())
+        schemaDefinition.optional === true ||
+        (schemaDefinition.optional !== false && schemaDefinition.optional())
     };
 
     // TODO use min max values for comments
@@ -125,10 +164,16 @@ export class SchemaImport {
   }
 
   private getType(
-    rawType,
+    schemaDefinition: ExtendedSchemaDefinition,
     name: string,
     schema: SimpleSchema
   ): string | undefined {
+    const rawType = schemaDefinition.type[0].type;
+
+    if (schemaDefinition.typeName) {
+      return schemaDefinition.typeName;
+    }
+
     if (rawType == Date) {
       return "Date";
     }
@@ -138,7 +183,7 @@ export class SchemaImport {
     if (rawType == Boolean) {
       return "boolean";
     }
-    if (rawType == Number) {
+    if (rawType == Number || rawType == SimpleSchema.Integer) {
       return "number";
     }
     if (rawType == Array) {
@@ -147,33 +192,58 @@ export class SchemaImport {
     }
 
     // TODO support enums
-    // TODO support multiple rules with | types
-    // TODO support exp
+    // TODO support multiple rules SimpleSchema.oneOf()
+    // TODO support Regexp
 
-    // This must be related to another schema
-    return this.getTypeName(name, rawType);
+    // This is probably related to another schema
+
+    try {
+      return this.getTypeName(name, rawType);
+    } catch (e) {
+      if (e instanceof TypeNotFoundError) {
+        // Let's say it's an enum
+        return Object.values(rawType)
+          .map(v => JSON.stringify(v))
+          .join(" | ");
+        /*
+        console.error(
+          `Type not found - setting property to Any: ${name}.${e.typeName}`
+        );
+        // FIXME add a comment
+        return "any";
+         */
+      } else {
+        throw e;
+      }
+    }
   }
 
   private getTypeName(
     name: string,
-    simpleSchema: SimpleSchema
+    typeDefinition: Object
   ): string | undefined {
     for (let typeName in this.schemas) {
       const schema = this.schemas[typeName];
-      if (simpleSchema === schema) {
+      if (typeDefinition === schema) {
         return typeName;
       }
     }
+
+    // FIXME if enum, get values as possible values
     throw new TypeNotFoundError(name);
   }
 
-  private getImportPath(schemaFile: SourceFile) {
+  // TODO also return the dependencies that are not schema related so that they can be imported
+  // TODO format: name of the import => module. So that all can be imported
+  private getImportPath(schemaFile: SourceFile): string {
     // TODO Very unefficient, but works
     const project = new Project({
       compilerOptions: { outDir: SchemaImport._tmpDir }
     });
+
     const copyFile = project.addSourceFileAtPath(schemaFile.getFilePath());
     project.emitSync();
+
     return copyFile
       .getEmitOutput()
       .getOutputFiles()[0]
