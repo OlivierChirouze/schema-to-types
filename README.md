@@ -3,6 +3,11 @@ Library to generate TypeScript types based on [simpl-schema](https://github.com/
 
 ## Usage
 
+### Install
+```shell script
+npm install --save-dev schema-to-types
+```
+
 ### Define the schemas
 
 Define all your schemas as values of a single object with type `SchemaMap` and export it.
