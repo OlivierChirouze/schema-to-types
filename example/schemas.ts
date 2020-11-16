@@ -1,18 +1,22 @@
-import { SchemaMap, SimpleSchema } from "../src/schema-map";
-import { MyEnum } from "./models/model";
+import { SchemaMap } from "../src/schema-map";
+import { Id, MyEnum } from "./models/model";
+import SimpleSchema from "simpl-schema";
 
 export const schemas: SchemaMap = {};
+
+// Essential to be allowed to use typeName property and reference types explicitly
+SimpleSchema.extendOptions(["typeName"]);
 
 schemas["SubType"] = new SimpleSchema({
   aNumber: {
     type: Number,
-    min: 12,
+    min: 12, // Ignored for the moment
     max: 14.5
   }
 });
 
 schemas["Foo"] = new SimpleSchema({
-  aSpecificField: schemas["SubType"],
+  aSubObject: schemas["SubType"],
   anArrayOfBooleans: {
     type: Array
   },
@@ -22,13 +26,16 @@ schemas["Foo"] = new SimpleSchema({
   aDate: {
     type: Date,
     optional: true,
-    // Not used for the moment
-    autoValue: () => new Date()
+    autoValue: () => new Date() // Ignored for the moment
   },
   aString: {
     type: String,
-    // Not used for the moment
-    defaultValue: "schemas"
+    defaultValue: "schemas" // Ignored for the moment
+  },
+  aTypedString: {
+    type: String as (value?: any) => Id, // To make sure Id is imported
+    // @ts-ignore
+    typeName: "Id"
   },
   anEnum: {
     type: MyEnum, // Will generate the list of possible values

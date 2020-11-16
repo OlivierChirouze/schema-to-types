@@ -1,5 +1,5 @@
 # schema-to-types
-Library to generate TypeScript types based on simpl-schema definitions
+Library to generate TypeScript types based on [simpl-schema](https://github.com/aldeed/simpl-schema) definitions
 
 ## Usage
 
@@ -45,13 +45,13 @@ export interface Foo {
 ```
 
 ### Generate types
-For the moment this is very basic: the project must be checked out and ran locally via `update-model.ts` script,
+Very basic for the moment: run `update-model.ts` script,
 providing path to `tsconfig` and the file that will contain the generated types.
 
 Example:
 
 ```shell script
-ts-node src/update-model.ts tsconfig.json example/models/generated-model.ts
+node node_modules/schema-to-types/dist/src/update-model.js tsconfig.json api/imports/model/schema-model.ts
 ```
 
 ## Details
@@ -70,9 +70,22 @@ schemas["SubType"] = new SimpleSchema({
 });
 
 schemas["Foo"] = new SimpleSchema({
-  aSpecificField: schemas["SubType"], // Will target the other type
+  aSubObject: schemas["SubType"], // Will target the other type
 });
 ```
+
+Will generate:
+
+```typescript
+export interface SubType {
+    aNumber: number;
+}
+
+export interface Foo {
+    aSubObject: SubType;
+}
+```
+
 
 ### Enum references
 
@@ -80,16 +93,20 @@ When an enum is used as a `type` in your schema, it will be "deconstructed" as t
 
 Except... if you provide the specific `typeName` attribute.
 
-For this to be accepted by `Simple-schema`, you will need to import `allowSchemaExtension` and call it.
+For this to be accepted by `Simple-schema`, you will need to allow it:
+
+```typescript
+SimpleSchema.extendOptions(["typeName"]);
+```
 
 Example
 
 ```typescript
-import { SchemaMap, allowSchemaExtension } from "../src/schema-map";
+import { SchemaMap } from "../src/schema-map";
 import { MyEnum } from "./models/model";
 
-export const schemas: SchemaMap = {};
-allowSchemaExtension(); // Needed for typeName to be accepted
+// Essential to be allowed to use typeName property and reference types explicitly
+SimpleSchema.extendOptions(["typeName"]);
 
 schemas["TypeWithEnumus"] = new SimpleSchema({
   anEnum: {
@@ -103,6 +120,40 @@ schemas["TypeWithEnumus"] = new SimpleSchema({
 });
 ```
 
+### Type references
+
+To reference a *type* instead of the native types (such as `String`):
+
+1. explicitely name it with the `typeName` property (see above)
+2. trick the reference in `type` property to make sure **the type is imported in the file** (mandatory for the code generation to reference it)
+
+Example
+
+Let's assume an Id type has been defined in `model/model.ts`:
+
+````typescript
+export type Id = string;
+````
+
+In the schema file:
+
+```typescript
+import { SchemaMap, allowSchemaExtension } from "../src/schema-map";
+import { Id } from "./models/model";
+
+// Essential to be allowed to use typeName property and reference types explicitly
+SimpleSchema.extendOptions(["typeName"]);
+
+schemas["TypeWithTypedString"] = new SimpleSchema({
+  aTypedString: {
+      type: String as (value?: any) => Id, // To make sure Id is imported
+      typeName: "Id"
+    },
+});
+```
+
+This way the library will use `Id` instead of `string` in the generated interface.
+
 ## Example
 To test the tool, look at `/example` dir and run
 
@@ -115,4 +166,11 @@ npm run generate-test-model
 - not all possible schema definitions have been implemented or tested
 - very unefficient code
 - would be nice to not rely on `typeName` for external references
-- not convenient: should be packaged as a npm package
+- requires to have all schemas in a single file
+
+## TODO
+
+- unit tests
+- add comments based on min / max, etc.
+- improve imports (very slow)
+- somehow manage to add `SimpleSchema.extendOptions(['typeName']);` automatically?
