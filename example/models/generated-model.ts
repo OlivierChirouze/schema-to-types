@@ -1,4 +1,4 @@
-import { Id, MyEnum } from "./model";
+import { Id, MyEnum } from './model';
 
 // *************************************************************
 //                Generated file: do not edit
@@ -15,6 +15,6 @@ export interface Foo {
     aDate?: Date;
     aString: string;
     aTypedString: Id;
-    anEnum?: "a" | "b" | "c";
+    anEnum?: 'a' | 'b' | 'c';
     anEnumWithType: MyEnum;
 }

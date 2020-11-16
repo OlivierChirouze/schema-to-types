@@ -2,7 +2,7 @@
 
 // Usage: script <tsConfig path> <outputFile path>
 
-import { SchemaImport } from "./schema-import";
+import { SchemaImport } from './schema-import';
 
 const myArgs = process.argv.slice(2);
 
