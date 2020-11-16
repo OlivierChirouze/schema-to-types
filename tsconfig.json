@@ -2,6 +2,7 @@
   "compileOnSave": false,
   "compilerOptions": {
     "baseUrl": "./",
+    "outDir": "dist",
     "inlineSourceMap": true,
     "declaration": true,
     "module": "commonjs",
@@ -10,8 +11,7 @@
     "experimentalDecorators": true,
     "resolveJsonModule": true,
     "importHelpers": true,
-    "target": "es2018",
-    "outDir": "dist",
+    "target": "es2015",
     "typeRoots": [
       "node_modules/@types"
     ],
