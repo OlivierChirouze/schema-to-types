@@ -1,6 +1,7 @@
 {
   "name": "schema-to-types",
   "version": "1.0.0",
+  "repository": "https://github.com/OlivierChirouze/schema-to-types.git",
   "main": "dist/src/schema-map.js",
   "types": "dist/src/schema-map.d.ts",
   "scripts": {
@@ -9,11 +10,11 @@
     "generate-test-model": "ts-node src/update-model.ts tsconfig.json example/models/generated-model.ts",
     "lint": "eslint",
     "format": "prettier --write \"src/**/*.ts\"",
-    "prepare" : "npm run build",
-    "prepublishOnly" : "npm test && npm run lint",
-    "preversion" : "npm run lint",
-    "version" : "npm run format && git add -A src",
-    "postversion" : "git push && git push --tags"
+    "prepare": "npm run build",
+    "prepublishOnly": "npm test && npm run lint",
+    "preversion": "npm run lint",
+    "version": "npm run format && git add -A src",
+    "postversion": "git push && git push --tags"
   },
   "dependencies": {
     "@types/node": "^14.14.7",
@@ -28,5 +29,7 @@
     "ts-node": "^9.0.0",
     "tslint-config-prettier": "^1.18.0"
   },
-  "files": ["dist/src/**/*"]
+  "files": [
+    "dist/src/**/*"
+  ]
 }
