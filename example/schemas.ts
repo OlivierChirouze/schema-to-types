@@ -11,39 +11,53 @@ schemas['SubType'] = new SimpleSchema({
     aNumber: {
         type: Number,
         min: 12, // Ignored for the moment
-        max: 14.5,
-    },
+        max: 14.5
+    }
 });
 
 schemas['Foo'] = new SimpleSchema({
     aSubObject: schemas['SubType'],
     anArrayOfBooleans: {
-        type: Array,
+        type: Array
     },
     'anArrayOfBooleans.$': {
-        type: Boolean,
+        type: Boolean
+    },
+    anArrayOfObjects: {
+        type: Array
+    },
+    'anArrayOfObjects.$': {
+        type: Object
+    },
+    'anArrayOfObjects.$.arrString': {
+        type: String,
+        optional: true
+    },
+    'anArrayOfObjects.$.arrInteger': {
+        type: SimpleSchema.Integer,
+        optional: false
     },
     aDate: {
         type: Date,
         optional: true,
-        autoValue: () => new Date(), // Ignored for the moment
+        autoValue: () => new Date() // Ignored for the moment
     },
     aString: {
         type: String,
-        defaultValue: 'schemas', // Ignored for the moment
+        defaultValue: 'schemas' // Ignored for the moment
     },
     aTypedString: {
         type: String as (value?: any) => Id, // To make sure Id is imported
         // @ts-ignore
-        typeName: 'Id',
+        typeName: 'Id'
     },
     anEnum: {
         type: MyEnum, // Will generate the list of possible values
-        optional: true,
+        optional: true
     },
     anEnumWithType: {
         type: MyEnum,
         // @ts-ignore
-        typeName: 'MyEnum', // Will reference MyEnum type directly
-    },
+        typeName: 'MyEnum' // Will reference MyEnum type directly
+    }
 });
