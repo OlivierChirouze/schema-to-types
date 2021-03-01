@@ -22,10 +22,9 @@ class TypeNotFoundError extends Error {
 type ExtendedSchemaDefinition = SchemaDefinition & { typeName?: string };
 
 export class SchemaImport {
-    private static readonly _tmpDir = './.tmp';
     private schemas: SchemaMap;
 
-    constructor(private tsConfigFilePath: string) {}
+    constructor(private readonly tmpDir: string, private tsConfigFilePath: string) {}
 
     generateModel(outputFilePath: string) {
         const project = new Project({
@@ -285,7 +284,7 @@ export class SchemaImport {
     private getImportPath(schemaFile: SourceFile): string {
         // TODO Very unefficient, but works
         const project = new Project({
-            compilerOptions: { outDir: SchemaImport._tmpDir }
+            compilerOptions: { outDir: this.tmpDir }
         });
 
         const copyFile = project.addSourceFileAtPath(schemaFile.getFilePath());

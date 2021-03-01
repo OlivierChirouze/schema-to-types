@@ -3,7 +3,8 @@
 // Usage: script <tsConfig path> <outputFile path>
 
 import { SchemaImport } from './schema-import';
+import * as path from 'path';
 
 const myArgs = process.argv.slice(2);
 
-new SchemaImport(myArgs[0]).generateModel(myArgs[1]);
+new SchemaImport(path.join(path.dirname(__dirname), '.tmp'), myArgs[0]).generateModel(myArgs[1]);
