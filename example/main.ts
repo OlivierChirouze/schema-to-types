@@ -5,11 +5,11 @@ import { MyEnum } from './models/model';
 const myObject: Foo = {
     anArrayOfObjects: [
         {
-            arrInteger: 12,
-        },
+            arrInteger: 12
+        }
     ],
     aSubObject: {
-        aNumber: 12,
+        aNumber: 12
     },
     aString: 'something',
     anArrayOfBooleans: [true, false, true],
@@ -17,6 +17,7 @@ const myObject: Foo = {
     anEnumWithType: MyEnum.VALUE_A,
     anEnum: MyEnum.VALUE_B,
     aTypedString: 'an Id',
+    aPropertyWithTwoAlternatives: { name: 'the name', value: 14 }
 };
 
 schemas['Foo'].validate(myObject);
