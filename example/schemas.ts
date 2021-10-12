@@ -11,12 +11,15 @@ schemas['SubType'] = new SimpleSchema({
     aNumber: {
         type: Number,
         min: 12, // Ignored for the moment
-        max: 14.5,
+        max: 14.5
     },
+    aString: {
+        type: String,
+        optional: true
+    }
 });
 
 schemas['Foo'] = new SimpleSchema({
-    aSubObject: schemas['SubType'],
     anArrayOfBooleans: {
         type: Array,
     },
@@ -69,13 +72,25 @@ schemas['Foo'] = new SimpleSchema({
             },
             value: {
                 type: Number,
-                optional: true,
+                optional: true
             },
         }),
         new SimpleSchema({
             date: {
-                type: Date,
-            },
+                type: Date
+            }
         })
     ),
+    aSubSchemaExternal: schemas['SubType'],
+    aSubSchemaInternal: new SimpleSchema({
+        aNumber: {
+            type: Number,
+            min: 12, // Ignored for the moment
+            max: 14.5
+        },
+        aString: {
+            type: String,
+            optional: true
+        }
+    })
 });

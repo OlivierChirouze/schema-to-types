@@ -67,15 +67,15 @@ To reference another schema, simply reference it via its key in the schemas obje
 
 ```typescript
 schemas["SubType"] = new SimpleSchema({
-  aNumber: {
-    type: Number,
-    min: 12,
-    max: 14.5
-  }
+    aNumber: {
+        type: Number,
+        min: 12,
+        max: 14.5
+    }
 });
 
 schemas["Foo"] = new SimpleSchema({
-  aSubObject: schemas["SubType"], // Will target the other type
+    aSubSchemaExternal: schemas["SubType"], // Will target the other type
 });
 ```
 

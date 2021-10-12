@@ -5,7 +5,7 @@ import {
     Project,
     PropertySignatureStructure,
     SourceFile,
-    StructureKind,
+    StructureKind
 } from 'ts-morph';
 import SimpleSchema, { SchemaDefinition } from 'simpl-schema';
 import { SchemaMap } from './schema-map';
@@ -14,7 +14,7 @@ import { tap } from 'rxjs/operators';
 
 class TypeNotFoundError extends Error {
     constructor(public typeName: string) {
-        super();
+        super(`Type not found: ${typeName}`);
     }
 }
 
@@ -157,6 +157,10 @@ export class SchemaImport {
     private getDeclaration(name: string, schema: SimpleSchema): OptionalKind<PropertySignatureStructure> | undefined {
         const schemaDefinition = schema.getDefinition(name) as ExtendedSchemaDefinition;
 
+        return this.getDeclarationFromDefinition(schemaDefinition, name, schema);
+    }
+
+    private getDeclarationFromDefinition(schemaDefinition: SchemaDefinition & { typeName?: string }, name: string, schema: SimpleSchema) {
         const type = this.getType(schemaDefinition, name, schema);
 
         let declaration: OptionalKind<PropertySignatureStructure> = {
@@ -164,7 +168,7 @@ export class SchemaImport {
             type,
             hasQuestionToken:
                 schemaDefinition.optional === true ||
-                (schemaDefinition.optional !== false && schemaDefinition.optional()),
+                (schemaDefinition.optional !== false && schemaDefinition.optional())
         };
 
         // TODO use label for comment
@@ -185,6 +189,7 @@ export class SchemaImport {
         }
 
         if (schemaDefinition.type.length > 1) {
+            // OneOf() (multiple alternatives)
             return schemaDefinition.type
                 .map((type) => type.type)
                 .map((type) => {
@@ -198,24 +203,29 @@ export class SchemaImport {
                 .join('|');
         }
 
-        const rawType =
+        let rawType =
             schemaDefinition.type.length && schemaDefinition.type.length === 1
                 ? schemaDefinition.type[0].type
                 : schemaDefinition.type;
 
-        if (rawType == Date) {
+        // In case it's a SimpleSchemaGroup
+        if (rawType.definitions) {
+            rawType = rawType.definitions[0].type;
+        }
+
+        if (rawType === Date) {
             return 'Date';
         }
-        if (rawType == String) {
+        if (rawType === String) {
             return 'string';
         }
-        if (rawType == Boolean) {
+        if (rawType === Boolean) {
             return 'boolean';
         }
-        if (rawType == Number || rawType == SimpleSchema.Integer) {
+        if (rawType === Number || rawType == SimpleSchema.Integer) {
             return 'number';
         }
-        if (rawType == Object) {
+        if (rawType === Object) {
             const prefix = `${name}`;
             const subKeys = schema.objectKeys(prefix);
 
@@ -232,7 +242,8 @@ export class SchemaImport {
             // Sub model is not detailed
             return 'Object';
         }
-        if (rawType == Array) {
+
+        if (rawType === Array) {
             const prefix = `${name}.$`;
             const subKeys = schema.objectKeys(prefix);
 
@@ -251,7 +262,6 @@ export class SchemaImport {
             return `${subDeclaration.type}[]`;
         }
 
-        // TODO support multiple rules SimpleSchema.oneOf()
         // TODO support Regexp
 
         // This is probably related to another schema
@@ -260,13 +270,35 @@ export class SchemaImport {
             return this.getTypeName(name, rawType);
         } catch (e) {
             if (e instanceof TypeNotFoundError) {
+                if (rawType.getDefinition) {
+                    // This is a SimpleSchema
+                    const definition = rawType.getDefinition();
+                    const subKeys = Object.keys(definition);
+
+                    if (subKeys.length > 0) {
+                        const subDeclarations = subKeys.map((subKey) => {
+                            const declaration = this.getDeclarationFromDefinition(definition[subKey], subKey, schema);
+                            return `${subKey}${declaration.hasQuestionToken ? '?' : ''}: ${declaration.type}`;
+                        });
+
+                        return `{${subDeclarations.join(',')}}`;
+                    }
+
+                    return 'Object';
+                }
+
                 // Let's say it's an enum
                 return Object.values(rawType)
-                    .map((v) => JSON.stringify(v))
+                    .map((v) => {
+                        // If it's an enum then the value is a scalar
+                        if (typeof v === 'object') {
+                            throw e;
+                        }
+                        return JSON.stringify(v);
+                    })
                     .join(' | ');
-            } else {
-                throw e;
             }
+            throw e;
         }
     }
 

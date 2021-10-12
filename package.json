@@ -1,6 +1,6 @@
 {
   "name": "schema-to-types",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "repository": "https://github.com/OlivierChirouze/schema-to-types.git",
   "main": "dist/src/schema-map.js",
   "types": "dist/src/schema-map.d.ts",

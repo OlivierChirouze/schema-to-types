@@ -7,16 +7,18 @@ import { Id, MyEnum } from './model';
 // *************************************************************
 export interface SubType {
     aNumber: number;
+    aString?: string;
 }
 
 export interface Foo {
-    aSubObject: SubType;
     anArrayOfBooleans: boolean[];
-    anArrayOfObjects: { arrString?: string; arrInteger: number }[];
+    anArrayOfObjects: { arrString?: string, arrInteger: number }[];
     aDate?: Date;
     aString: string;
     aTypedString: Id;
     anEnum?: 'a' | 'b' | 'c';
     anEnumWithType: MyEnum;
-    aPropertyWithTwoAlternatives: { name: string; value?: number } | { date: Date };
+    aPropertyWithTwoAlternatives: { name: string, value?: number } | { date: Date };
+    aSubSchemaExternal: SubType;
+    aSubSchemaInternal: { aNumber: number, aString?: string };
 }

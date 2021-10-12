@@ -8,8 +8,8 @@ const myObject: Foo = {
             arrInteger: 12,
         },
     ],
-    aSubObject: {
-        aNumber: 12,
+    aSubSchemaExternal: {
+        aNumber: 12
     },
     aString: 'something',
     anArrayOfBooleans: [true, false, true],
