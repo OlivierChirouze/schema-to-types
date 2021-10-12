@@ -3,10 +3,11 @@ import { schemas } from './schemas';
 import { MyEnum } from './models/model';
 
 const myObject: Foo = {
+    aSubSchemaInternal: { aNumber: 0 },
     anArrayOfObjects: [
         {
-            arrInteger: 12,
-        },
+            arrInteger: 12
+        }
     ],
     aSubSchemaExternal: {
         aNumber: 12
@@ -17,7 +18,7 @@ const myObject: Foo = {
     anEnumWithType: MyEnum.VALUE_A,
     anEnum: MyEnum.VALUE_B,
     aTypedString: 'an Id',
-    aPropertyWithTwoAlternatives: { name: 'the name', value: 14 },
+    aPropertyWithTwoAlternatives: { name: 'the name', value: 14 }
 };
 
 schemas['Foo'].validate(myObject);
