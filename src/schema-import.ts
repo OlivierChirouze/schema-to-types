@@ -13,8 +13,8 @@ import { from } from 'rxjs';
 import { tap } from 'rxjs/operators';
 
 class TypeNotFoundError extends Error {
-    constructor(public typeName: string) {
-        super(`Type not found: ${typeName}`);
+    constructor() {
+        super(`Type not found`);
     }
 }
 
@@ -203,15 +203,7 @@ export class SchemaImport {
                 .join('|');
         }
 
-        let rawType =
-            schemaDefinition.type.length && schemaDefinition.type.length === 1
-                ? schemaDefinition.type[0].type
-                : schemaDefinition.type;
-
-        // In case it's a SimpleSchemaGroup
-        if (rawType.definitions) {
-            rawType = rawType.definitions[0].type;
-        }
+        const rawType = this.getRawType(schemaDefinition);
 
         if (rawType === Date) {
             return 'Date';
@@ -245,29 +237,41 @@ export class SchemaImport {
 
         if (rawType === Array) {
             const prefix = `${name}.$`;
-            const subKeys = schema.objectKeys(prefix);
+            const elementSchemaDefinition = schema.getDefinition(prefix) as ExtendedSchemaDefinition;
+            const elementRawType = this.getRawType(elementSchemaDefinition);
+            // Try if the array element is a reference to another definition
+            try {
+                const typeName = this.findReferencedDefinition(elementRawType);
+                return `${typeName}[]`;
+            } catch (e) {
+                if (e instanceof TypeNotFoundError) {
+                    const subKeys = schema.objectKeys(prefix);
 
-            // Sub model is detailed
-            if (subKeys.length > 0) {
-                const subDeclarations = subKeys.map((subKey) => {
-                    const declaration = this.getDeclaration(`${prefix}.${subKey}`, schema);
-                    return `${subKey}${declaration.hasQuestionToken ? '?' : ''}: ${declaration.type}`;
-                });
+                    // Sub model is detailed
+                    if (subKeys.length > 0) {
+                        const subDeclarations = subKeys.map((subKey) => {
+                            const declaration = this.getDeclaration(`${prefix}.${subKey}`, schema);
+                            return `${subKey}${declaration.hasQuestionToken ? '?' : ''}: ${declaration.type}`;
+                        });
 
-                return `{${subDeclarations.join(',')}}[]`;
+                        return `{${subDeclarations.join(',')}}[]`;
+                    }
+
+                    // Sub model is not detailed
+                    const subDeclaration = this.getDeclaration(prefix, schema);
+                    return `${subDeclaration.type}[]`;
+                }
+                throw e;
             }
 
-            // Sub model is not detailed
-            const subDeclaration = this.getDeclaration(prefix, schema);
-            return `${subDeclaration.type}[]`;
+
         }
 
         // TODO support Regexp
 
-        // This is probably related to another schema
-
+        // This is probably related to another schema in the map
         try {
-            return this.getTypeName(name, rawType);
+            return this.findReferencedDefinition(rawType);
         } catch (e) {
             if (e instanceof TypeNotFoundError) {
                 if (rawType.getDefinition) {
@@ -302,7 +306,20 @@ export class SchemaImport {
         }
     }
 
-    private getTypeName(name: string, typeDefinition: Object): string | undefined {
+    private getRawType(schemaDefinition: SchemaDefinition & { typeName?: string }) {
+        let rawType =
+            schemaDefinition.type.length && schemaDefinition.type.length === 1
+                ? schemaDefinition.type[0].type
+                : schemaDefinition.type;
+
+        // In case it's a SimpleSchemaGroup
+        if (rawType.definitions) {
+            rawType = rawType.definitions[0].type;
+        }
+        return rawType;
+    }
+
+    private findReferencedDefinition(typeDefinition: Object): string | undefined {
         for (let typeName in this.schemas) {
             const schema = this.schemas[typeName];
             if (typeDefinition === schema) {
@@ -310,7 +327,7 @@ export class SchemaImport {
             }
         }
 
-        throw new TypeNotFoundError(name);
+        throw new TypeNotFoundError();
     }
 
     private getImportPath(schemaFile: SourceFile): string {

@@ -21,4 +21,5 @@ export interface Foo {
     aPropertyWithTwoAlternatives: { name: string, value?: number } | { date: Date };
     aSubSchemaExternal: SubType;
     aSubSchemaInternal: { aNumber: number, aString?: string };
+    anArrayOfExternal?: SubType[];
 }

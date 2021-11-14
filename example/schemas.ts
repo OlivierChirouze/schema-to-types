@@ -92,5 +92,10 @@ schemas['Foo'] = new SimpleSchema({
             type: String,
             optional: true
         }
-    })
+    }),
+    anArrayOfExternal: {
+        type: Array,
+        optional: true
+    },
+    'anArrayOfExternal.$': schemas['SubType']
 });
