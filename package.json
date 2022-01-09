@@ -1,7 +1,16 @@
 {
   "name": "schema-to-types",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "repository": "https://github.com/OlivierChirouze/schema-to-types.git",
+  "homepage": "https://github.com/OlivierChirouze/schema-to-types",
+  "description": "Library to generate TypeScript types based on simpl-schema definitions.",
+  "keywords": [
+    "typing",
+    "schema",
+    "meteor",
+    "form",
+    "validation"
+  ],
   "main": "dist/src/schema-map.js",
   "types": "dist/src/schema-map.d.ts",
   "scripts": {

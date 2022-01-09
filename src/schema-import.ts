@@ -24,11 +24,12 @@ type ExtendedSchemaDefinition = SchemaDefinition & { typeName?: string };
 export class SchemaImport {
     private schemas: SchemaMap;
 
-    constructor(private readonly tmpDir: string, private tsConfigFilePath: string) {}
+    constructor(private readonly tmpDir: string, private tsConfigFilePath: string) {
+    }
 
     generateModel(outputFilePath: string) {
         const project = new Project({
-            tsConfigFilePath: this.tsConfigFilePath,
+            tsConfigFilePath: this.tsConfigFilePath
         });
 
         const mapNameAndFile = this.getSchemaMapNameAndFile(project);
@@ -36,13 +37,13 @@ export class SchemaImport {
         if (!mapNameAndFile) {
             throw new Error(
                 '----------------------------------------\n' +
-                    'File containing a SchemaMap export: not found\n' +
-                    '---------------------------------------------'
+                'File containing a SchemaMap export: not found\n' +
+                '---------------------------------------------'
             );
         }
 
         const outputFile = project.createSourceFile(outputFilePath, '', {
-            overwrite: true,
+            overwrite: true
         });
 
         outputFile.addStatements((writer: CodeBlockWriter) => {
@@ -70,7 +71,7 @@ export class SchemaImport {
                         .getRelativePathTo(d.getModuleSpecifierSourceFile())
                         // TS2691: An import path cannot end with a '.ts' extension.
                         .replace(/\.ts$/, ''),
-                source: d.getModuleSpecifierSourceFile(),
+                source: d.getModuleSpecifierSourceFile()
             }))
             .filter((i) => i.namedImports.length > 0);
 
@@ -87,7 +88,7 @@ export class SchemaImport {
                     for (let typeName in this.schemas) {
                         const schema = this.schemas[typeName];
                         const classDeclaration = outputFile.addInterface({
-                            name: typeName,
+                            name: typeName
                         });
 
                         mapNameAndFile.source.getStructure();
@@ -110,14 +111,15 @@ export class SchemaImport {
                 })
             )
             .subscribe(
-                () => {},
+                () => {
+                },
                 (error) => {
                     if (error.message && error.message.endsWith('"typeName" is not a supported property')) {
                         console.error(
                             '---------------------------------------------------------------------------------------------\n' +
-                                "It seems you are using typeName property but didn't allow it. Make sure your schema file contains:\n" +
-                                "SimpleSchema.extendOptions(['typeName']);\n" +
-                                '--------------------------------------------------------------------------------------------------\n'
+                            'It seems you are using typeName property but didn\'t allow it. Make sure your schema file contains:\n' +
+                            'SimpleSchema.extendOptions([\'typeName\']);\n' +
+                            '--------------------------------------------------------------------------------------------------\n'
                         );
                     } else {
                         throw error;
@@ -145,7 +147,7 @@ export class SchemaImport {
                     if (schemaMap.length === 1) {
                         return {
                             name: schemaMap[0].name,
-                            source: file,
+                            source: file
                         };
                     }
                 }
@@ -280,10 +282,12 @@ export class SchemaImport {
                     const subKeys = Object.keys(definition);
 
                     if (subKeys.length > 0) {
-                        const subDeclarations = subKeys.map((subKey) => {
-                            const declaration = this.getDeclarationFromDefinition(definition[subKey], subKey, schema);
-                            return `${subKey}${declaration.hasQuestionToken ? '?' : ''}: ${declaration.type}`;
-                        });
+                        const subDeclarations = subKeys
+                            .filter((subKey) => !subKey.includes('$'))
+                            .map((subKey) => {
+                                const declaration = this.getDeclarationFromDefinition(definition[subKey], subKey, rawType);
+                                return `${subKey}${declaration.hasQuestionToken ? '?' : ''}: ${declaration.type}`;
+                            });
 
                         return `{${subDeclarations.join(',')}}`;
                     }
@@ -333,7 +337,7 @@ export class SchemaImport {
     private getImportPath(schemaFile: SourceFile): string {
         // TODO Very unefficient, but works
         const project = new Project({
-            compilerOptions: { outDir: this.tmpDir },
+            compilerOptions: { outDir: this.tmpDir }
         });
 
         const copyFile = project.addSourceFileAtPath(schemaFile.getFilePath());

@@ -18,7 +18,8 @@ const myObject: Foo = {
     anEnumWithType: MyEnum.VALUE_A,
     anEnum: MyEnum.VALUE_B,
     aTypedString: 'an Id',
-    aPropertyWithTwoAlternatives: { name: 'the name', value: 14 }
+    aPropertyWithTwoAlternatives: { name: 'the name', value: 14 },
+    anObjectWithAnArrayOfBooleans: { property: [true, false, false] }
 };
 
 schemas['Foo'].validate(myObject);

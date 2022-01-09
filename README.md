@@ -1,9 +1,13 @@
 # schema-to-types
-Library to generate TypeScript types based on [simpl-schema](https://github.com/aldeed/simpl-schema) definitions
+
+Library to generate TypeScript types based on [simpl-schema](https://github.com/aldeed/simpl-schema) definitions.
+
+Define **schemas** once, get both validation and type checking!
 
 ## Usage
 
 ### Install
+
 ```shell script
 npm install --save-dev schema-to-types
 ```

@@ -11,6 +11,7 @@ export interface SubType {
 }
 
 export interface Foo {
+    anObjectWithAnArrayOfBooleans: { property: boolean[] };
     anArrayOfBooleans: boolean[];
     anArrayOfObjects: { arrString?: string, arrInteger: number }[];
     aDate?: Date;

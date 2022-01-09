@@ -20,60 +20,68 @@ schemas['SubType'] = new SimpleSchema({
 });
 
 schemas['Foo'] = new SimpleSchema({
+    anObjectWithAnArrayOfBooleans: new SimpleSchema({
+        property: {
+            type: Array
+        },
+        'property.$': {
+            type: Boolean
+        }
+    }),
     anArrayOfBooleans: {
-        type: Array,
+        type: Array
     },
     'anArrayOfBooleans.$': {
-        type: Boolean,
+        type: Boolean
     },
     anArrayOfObjects: {
-        type: Array,
+        type: Array
     },
     'anArrayOfObjects.$': {
-        type: Object,
+        type: Object
     },
     'anArrayOfObjects.$.arrString': {
         type: String,
-        optional: true,
+        optional: true
     },
     'anArrayOfObjects.$.arrInteger': {
         type: SimpleSchema.Integer,
-        optional: false,
+        optional: false
     },
     aDate: {
         type: Date,
         optional: true,
-        autoValue: () => new Date(), // Ignored for the moment
+        autoValue: () => new Date() // Ignored for the moment
     },
     aString: {
         type: String,
-        defaultValue: 'schemas', // Ignored for the moment
+        defaultValue: 'schemas' // Ignored for the moment
     },
     aTypedString: {
         type: String as (value?: any) => Id, // To make sure Id is imported
         // @ts-ignore
-        typeName: 'Id',
+        typeName: 'Id'
     },
     anEnum: {
         type: MyEnum, // Will generate the list of possible values
-        optional: true,
+        optional: true
     },
     anEnumWithType: {
         type: MyEnum,
         // @ts-ignore
-        typeName: 'MyEnum', // Will reference MyEnum type directly
+        typeName: 'MyEnum' // Will reference MyEnum type directly
     },
     // @ts-ignore
     aPropertyWithTwoAlternatives: SimpleSchema.oneOf(
         // @ts-ignore
         new SimpleSchema({
             name: {
-                type: String,
+                type: String
             },
             value: {
                 type: Number,
                 optional: true
-            },
+            }
         }),
         new SimpleSchema({
             date: {
