@@ -1,5 +1,5 @@
 import { Foo } from './models/generated-model';
-import { schemas } from './schemas';
+import { schemas } from './test/schemas';
 import { MyEnum } from './models/model';
 
 const myObject: Foo = {

@@ -1,6 +1,7 @@
-import { SchemaMap } from '../src/schema-map';
-import { Id, MyEnum } from './models/model';
+import { SchemaMap } from '../../src/schema-map';
+import { Id, MyEnum } from '../models/model';
 import SimpleSchema from 'simpl-schema';
+import { defaultMeta } from '../simpleSchema';
 
 export const schemas: SchemaMap = {};
 
@@ -107,3 +108,14 @@ schemas['Foo'] = new SimpleSchema({
     },
     'anArrayOfExternal.$': schemas['SubType']
 });
+
+schemas['bar'] = new SimpleSchema({
+    field1: {
+        type: String
+    },
+    field2: {
+        type: String
+    },
+    ...defaultMeta
+});
+

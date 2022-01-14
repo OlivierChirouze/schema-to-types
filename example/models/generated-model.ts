@@ -24,3 +24,9 @@ export interface Foo {
     aSubSchemaInternal: { aNumber: number, aString?: string };
     anArrayOfExternal?: SubType[];
 }
+
+export interface bar {
+    field1: string;
+    field2: string;
+    anObjectWithAnArrayOfBooleans: { property: boolean[] };
+}
