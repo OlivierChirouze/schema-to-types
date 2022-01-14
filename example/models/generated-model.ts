@@ -1,3 +1,4 @@
+import { Polygon } from 'geojson';
 import { Id, MyEnum } from './model';
 
 // *************************************************************
@@ -23,4 +24,5 @@ export interface Foo {
     aSubSchemaExternal: SubType;
     aSubSchemaInternal: { aNumber: number, aString?: string };
     anArrayOfExternal?: SubType[];
+    aPolygon?: Polygon;
 }

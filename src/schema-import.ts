@@ -11,6 +11,8 @@ import SimpleSchema, { SchemaDefinition } from 'simpl-schema';
 import { SchemaMap } from './schema-map';
 import { from } from 'rxjs';
 import { tap } from 'rxjs/operators';
+import * as path from 'path';
+import * as fs from 'fs';
 
 class TypeNotFoundError extends Error {
     constructor() {
@@ -60,19 +62,34 @@ export class SchemaImport {
             source: SourceFile;
         })[] = mapNameAndFile.source
             .getImportDeclarations()
-            .map((d) => ({
-                namedImports: d
-                    .getNamedImports()
-                    .map((i) => i.getName())
-                    .filter((s) => s !== 'SchemaMap'),
-                moduleSpecifier:
-                    './' +
-                    outputFile
-                        .getRelativePathTo(d.getModuleSpecifierSourceFile())
+            .map((d) => {
+
+                let moduleSpecifier: string;
+
+                if (d.isModuleSpecifierRelative()) {
+                    // Try to build the path "manually"
+                    let importPath = path.relative(outputFile.getDirectoryPath(), path.resolve(
+                        `${mapNameAndFile.source.getDirectoryPath()}/${d.getModuleSpecifierValue()}.ts`
+                    ));
+
+                    // If file is not found, try with getModuleSpecifierSourceFile instead
+                    moduleSpecifier = (`./${fs.existsSync(importPath) ? importPath : outputFile.getRelativePathTo(d.getModuleSpecifierSourceFile())}`)
                         // TS2691: An import path cannot end with a '.ts' extension.
-                        .replace(/\.ts$/, ''),
-                source: d.getModuleSpecifierSourceFile()
-            }))
+                        .replace(/\.ts$/, '');
+                } else {
+                    // Node module: leave as-is
+                    moduleSpecifier = d.getModuleSpecifierValue();
+                }
+
+                return {
+                    namedImports: d
+                        .getNamedImports()
+                        .map((i) => i.getName())
+                        .filter((s) => s !== 'SchemaMap'),
+                    moduleSpecifier,
+                    source: d.getModuleSpecifierSourceFile()
+                };
+            })
             .filter((i) => i.namedImports.length > 0);
 
         outputFile.addImportDeclarations(imports);

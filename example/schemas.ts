@@ -1,6 +1,7 @@
 import { SchemaMap } from '../src/schema-map';
 import { Id, MyEnum } from './models/model';
 import SimpleSchema from 'simpl-schema';
+import { Polygon } from 'geojson';
 
 export const schemas: SchemaMap = {};
 
@@ -105,5 +106,24 @@ schemas['Foo'] = new SimpleSchema({
         type: Array,
         optional: true
     },
-    'anArrayOfExternal.$': schemas['SubType']
+    'anArrayOfExternal.$': schemas['SubType'],
+    aPolygon: {
+        optional: true,
+        type: {
+            type: {
+                type: String,
+                allowedValues: ['Polygon']
+            },
+            coordinates: { type: Array },
+            'coordinates.$': {
+                type: Array,
+                minCount: 2,
+                maxCount: 2
+            },
+            'coordinates.$.$': { type: Number }
+        },
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore TODO typings should allow it
+        typeName: 'Polygon' as Polygon as unknown as string // Hack to import type
+    }
 });

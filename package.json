@@ -1,6 +1,6 @@
 {
   "name": "schema-to-types",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "repository": "https://github.com/OlivierChirouze/schema-to-types.git",
   "homepage": "https://github.com/OlivierChirouze/schema-to-types",
   "description": "Library to generate TypeScript types based on simpl-schema definitions.",
@@ -32,6 +32,7 @@
     "ts-morph": "^8.1.2"
   },
   "devDependencies": {
+    "@types/geojson": "^7946.0.8",
     "@types/simpl-schema": "^0.2.9",
     "eslint": "^7.13.0",
     "prettier": "^2.1.2",
