@@ -2,6 +2,7 @@ import { SchemaMap } from '../src/schema-map';
 import { Id, MyEnum } from './models/model';
 import SimpleSchema from 'simpl-schema';
 import { Polygon } from 'geojson';
+import { definition } from './external-definition';
 
 export const schemas: SchemaMap = {};
 
@@ -126,4 +127,9 @@ schemas['Foo'] = new SimpleSchema({
         // @ts-ignore TODO typings should allow it
         typeName: 'Polygon' as Polygon as unknown as string // Hack to import type
     }
+});
+
+schemas['FromJS'] = new SimpleSchema({
+    ...definition,
+    otherField: Number
 });

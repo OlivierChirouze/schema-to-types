@@ -26,3 +26,9 @@ export interface Foo {
     anArrayOfExternal?: SubType[];
     aPolygon?: Polygon;
 }
+
+export interface FromJS {
+    aJavascriptNumber: number;
+    aJavascriptString?: string;
+    otherField: number;
+}

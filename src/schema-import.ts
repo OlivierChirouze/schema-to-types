@@ -15,8 +15,8 @@ import * as path from 'path';
 import * as fs from 'fs';
 
 class TypeNotFoundError extends Error {
-    constructor() {
-        super(`Type not found`);
+    constructor(type: string) {
+        super(`Type not found: ${type}`);
     }
 }
 
@@ -38,7 +38,7 @@ export class SchemaImport {
 
         if (!mapNameAndFile) {
             throw new Error(
-                '----------------------------------------\n' +
+                '--------------------------------------\n' +
                 'File containing a SchemaMap export: not found\n' +
                 '---------------------------------------------'
             );
@@ -57,6 +57,8 @@ export class SchemaImport {
             writer.blankLine();
         });
 
+        const mainImportPath = this.getImportPath(mapNameAndFile.source.getFilePath());
+
         // Import all the imports that exist in the original file, not related to simpl-schema
         const imports: (OptionalKind<ImportDeclarationStructure> & {
             source: SourceFile;
@@ -68,14 +70,31 @@ export class SchemaImport {
 
                 if (d.isModuleSpecifierRelative()) {
                     // Try to build the path "manually"
-                    let importPath = path.relative(outputFile.getDirectoryPath(), path.resolve(
-                        `${mapNameAndFile.source.getDirectoryPath()}/${d.getModuleSpecifierValue()}.ts`
-                    ));
+                    let importPath = path.resolve(
+                        `${mapNameAndFile.source.getDirectoryPath()}/${d.getModuleSpecifierValue()}`
+                    );
 
-                    // If file is not found, try with getModuleSpecifierSourceFile instead
-                    moduleSpecifier = (`./${fs.existsSync(importPath) ? importPath : outputFile.getRelativePathTo(d.getModuleSpecifierSourceFile())}`)
-                        // TS2691: An import path cannot end with a '.ts' extension.
-                        .replace(/\.ts$/, '');
+                    let fileFound = undefined;
+                    if (fs.existsSync(`${importPath}`)) {
+                        fileFound = importPath;
+                    } else if (fs.existsSync(`${importPath}.ts`)) {
+                        fileFound = `${importPath}.ts`;
+                    } else if (fs.existsSync(`${importPath}.d.ts`)) {
+                        fileFound = `${importPath}.d.ts`;
+                    } else if (fs.existsSync(`${importPath}.js`)) {
+                        fileFound = `${importPath}.js`;
+                    }
+
+                    // Try .ts, .d.ts, .js files
+                    if (fileFound) {
+                        moduleSpecifier = `./${path.relative(outputFile.getDirectoryPath(), importPath)}`;
+
+                    } else {
+                        moduleSpecifier = outputFile.getRelativePathTo(d.getModuleSpecifierSourceFile())
+                            // TS2691: An import path cannot end with a '.ts' extension.
+                            .replace(/\.ts$/, '');
+                    }
+
                 } else {
                     // Node module: leave as-is
                     moduleSpecifier = d.getModuleSpecifierValue();
@@ -94,9 +113,7 @@ export class SchemaImport {
 
         outputFile.addImportDeclarations(imports);
 
-        const importPath = this.getImportPath(mapNameAndFile.source);
-
-        const importSchemas = from(import(importPath));
+        const importSchemas = from(import(mainImportPath));
         importSchemas
             .pipe(
                 tap((importedModule) => {
@@ -348,16 +365,19 @@ export class SchemaImport {
             }
         }
 
-        throw new TypeNotFoundError();
+        throw new TypeNotFoundError(JSON.stringify(typeDefinition));
     }
 
-    private getImportPath(schemaFile: SourceFile): string {
+    private getImportPath(filePath: string): string {
         // TODO Very unefficient, but works
         const project = new Project({
-            compilerOptions: { outDir: this.tmpDir }
+            compilerOptions: {
+                outDir: this.tmpDir,
+                allowJs: true
+            }
         });
 
-        const copyFile = project.addSourceFileAtPath(schemaFile.getFilePath());
+        const copyFile = project.addSourceFileAtPath(filePath);
         project.emitSync();
 
         return copyFile.getEmitOutput().getOutputFiles()[0].getFilePath();

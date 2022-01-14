@@ -1,4 +1,4 @@
-import { Foo } from './models/generated-model';
+import { Foo, FromJS } from './models/generated-model';
 import { schemas } from './schemas';
 import { MyEnum } from './models/model';
 
@@ -23,3 +23,8 @@ const myObject: Foo = {
 };
 
 schemas['Foo'].validate(myObject);
+
+const myJSObject: FromJS = {
+    aJavascriptNumber: 6,
+    otherField: 3
+};

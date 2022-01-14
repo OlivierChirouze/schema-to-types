@@ -1,6 +1,6 @@
 {
   "name": "schema-to-types",
-  "version": "1.0.7",
+  "version": "1.1.0",
   "repository": "https://github.com/OlivierChirouze/schema-to-types.git",
   "homepage": "https://github.com/OlivierChirouze/schema-to-types",
   "description": "Library to generate TypeScript types based on simpl-schema definitions.",
