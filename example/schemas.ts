@@ -1,5 +1,5 @@
-import { SchemaMap } from '../../src/schema-map';
-import { Id, MyEnum } from '../models/model';
+import { SchemaMap } from '../src/schema-map';
+import { Id, MyEnum } from './models/model';
 import SimpleSchema from 'simpl-schema';
 import { defaultMeta } from '../simpleSchema';
 
