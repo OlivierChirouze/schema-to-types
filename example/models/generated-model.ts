@@ -1,5 +1,5 @@
-import { Polygon } from "geojson";
-import { Id, MyEnum } from "./model";
+import { Polygon } from 'geojson';
+import { Id, MyEnum } from './model';
 
 // *************************************************************
 //                Generated file: do not edit
@@ -11,6 +11,12 @@ export interface SubType {
     aString?: string;
 }
 
+export interface FromJS {
+    aJavascriptNumber: number;
+    aJavascriptString?: string;
+    otherField: number;
+}
+
 export interface Foo {
     anObjectWithAnArrayOfBooleans: { property: boolean[] };
     anArrayOfBooleans: boolean[];
@@ -18,18 +24,19 @@ export interface Foo {
     aDate?: Date;
     aString: string;
     aTypedString: Id;
-    anEnum?: "a" | "b" | "c";
+    anEnum?: 'a' | 'b' | 'c';
     anEnumWithType: MyEnum;
     aPropertyWithTwoAlternatives: { name: string, value?: number } | { date: Date };
     anArrayWithTwoAlternatives: ({ name: string, value?: number } | { date: Date })[];
+    anArrayWithTwoAlternativesExternals?: (SubType | FromJS)[];
     aSubSchemaExternal: SubType;
     aSubSchemaInternal: { aNumber: number, aString?: string };
     anArrayOfExternal?: SubType[];
     aPolygon?: Polygon;
 }
 
-export interface FromJS {
+export interface OtherFromJS {
     aJavascriptNumber: number;
     aJavascriptString?: string;
-    otherField: number;
+    yetAnotherField: number;
 }

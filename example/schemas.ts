@@ -21,6 +21,11 @@ schemas['SubType'] = new SimpleSchema({
     }
 });
 
+schemas['FromJS'] = new SimpleSchema({
+    ...definition,
+    otherField: Number
+});
+
 schemas['Foo'] = new SimpleSchema({
     anObjectWithAnArrayOfBooleans: new SimpleSchema({
         property: {
@@ -110,7 +115,16 @@ schemas['Foo'] = new SimpleSchema({
             }
         })
     ),
-
+    anArrayWithTwoAlternativesExternals: {
+        type: Array,
+        optional: true
+    },
+    // @ts-ignore TODO for some reason the typings from SimpleSchema are incorrect
+    'anArrayWithTwoAlternativesExternals.$': SimpleSchema.oneOf(
+        // @ts-ignore TODO for some reason the typings from SimpleSchema are incorrect
+        schemas['SubType'],
+        schemas['FromJS']
+    ),
     aSubSchemaExternal: schemas['SubType'],
     aSubSchemaInternal: new SimpleSchema({
         aNumber: {
@@ -149,7 +163,7 @@ schemas['Foo'] = new SimpleSchema({
     }
 });
 
-schemas['FromJS'] = new SimpleSchema({
+schemas['OtherFromJS'] = new SimpleSchema({
     ...definition,
-    otherField: Number
+    yetAnotherField: Number
 });
