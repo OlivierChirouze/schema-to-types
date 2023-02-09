@@ -73,9 +73,9 @@ schemas['Foo'] = new SimpleSchema({
         // @ts-ignore
         typeName: 'MyEnum' // Will reference MyEnum type directly
     },
-    // @ts-ignore
+    // @ts-ignore TODO for some reason the typings from SimpleSchema are incorrect
     aPropertyWithTwoAlternatives: SimpleSchema.oneOf(
-        // @ts-ignore
+        // @ts-ignore TODO for some reason the typings from SimpleSchema are incorrect
         new SimpleSchema({
             name: {
                 type: String
@@ -91,6 +91,26 @@ schemas['Foo'] = new SimpleSchema({
             }
         })
     ),
+    anArrayWithTwoAlternatives: Array,
+    // @ts-ignore TODO for some reason the typings from SimpleSchema are incorrect
+    'anArrayWithTwoAlternatives.$': SimpleSchema.oneOf(
+        // @ts-ignore TODO for some reason the typings from SimpleSchema are incorrect
+        new SimpleSchema({
+            name: {
+                type: String
+            },
+            value: {
+                type: Number,
+                optional: true
+            }
+        }),
+        new SimpleSchema({
+            date: {
+                type: Date
+            }
+        })
+    ),
+
     aSubSchemaExternal: schemas['SubType'],
     aSubSchemaInternal: new SimpleSchema({
         aNumber: {

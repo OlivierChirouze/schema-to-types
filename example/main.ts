@@ -19,6 +19,10 @@ const myObject: Foo = {
     anEnum: MyEnum.VALUE_B,
     aTypedString: 'an Id',
     aPropertyWithTwoAlternatives: { name: 'the name', value: 14 },
+    anArrayWithTwoAlternatives: [
+        { name: 'the name', value: 14 },
+        { date: new Date('2023-02-09T15:30:57.784Z') }
+    ],
     anObjectWithAnArrayOfBooleans: { property: [true, false, false] }
 };
 

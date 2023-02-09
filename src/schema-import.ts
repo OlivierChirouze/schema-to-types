@@ -224,22 +224,10 @@ export class SchemaImport {
             return schemaDefinition.typeName;
         }
 
-        if (schemaDefinition.type.length > 1) {
-            // OneOf() (multiple alternatives)
-            return schemaDefinition.type
-                .map((type) => type.type)
-                .map((type) => {
-                    const subDeclarations = type.objectKeys('').map((subKey) => {
-                        const declaration = this.getDeclaration(subKey, type);
-                        return `${subKey}${declaration.hasQuestionToken ? '?' : ''}: ${declaration.type}`;
-                    });
-
-                    return `{${subDeclarations.join(',')}}`;
-                })
-                .join('|');
-        }
-
         const rawType = this.getRawType(schemaDefinition);
+        if (schemaDefinition.type.length > 1) {
+            return rawType;
+        }
 
         if (rawType === Date) {
             return 'Date';
@@ -281,6 +269,10 @@ export class SchemaImport {
                 return `${typeName}[]`;
             } catch (e) {
                 if (e instanceof TypeNotFoundError) {
+                    if (typeof elementRawType === 'string') {
+                        return `(${elementRawType})[]`;
+                    }
+
                     const subKeys = schema.objectKeys(prefix);
 
                     // Sub model is detailed
@@ -345,6 +337,21 @@ export class SchemaImport {
     }
 
     private getRawType(schemaDefinition: SchemaDefinition & { typeName?: string }) {
+        if (schemaDefinition.type.length > 1) {
+            // OneOf() (multiple alternatives)
+            return schemaDefinition.type
+                .map((type) => type.type)
+                .map((type) => {
+                    const subDeclarations = type.objectKeys('').map((subKey) => {
+                        const declaration = this.getDeclaration(subKey, type);
+                        return `${subKey}${declaration.hasQuestionToken ? '?' : ''}: ${declaration.type}`;
+                    });
+
+                    return `{${subDeclarations.join(',')}}`;
+                })
+                .join('|');
+        }
+
         let rawType =
             schemaDefinition.type.length && schemaDefinition.type.length === 1
                 ? schemaDefinition.type[0].type
