@@ -138,20 +138,12 @@ export class SchemaImport {
                                 classDeclaration.addProperty(declaration);
                             });
                         } else {
-                            /*
-                            // This is a SimpleSchemaGroup (interface is not exposed 😞)
-                            const definitions = (schema as unknown as { definitions: { type: SimpleSchema }[] }).definitions;
-
-                            const types = definitions.map((subSchema) =>
-                                this.getType(subSchema, '', schema)
-                            );
-
-                            const [first, second, ...others] = types;
-*/
-                            outputFile.addTypeAlias({
+                            const typeAlias = outputFile.addTypeAlias({
                                 name: typeName,
                                 type: this.getType({ type: schema }, typeName, schema)
                             });
+
+                            typeAlias.setIsExported(true);
                         }
                     }
 
@@ -234,19 +226,6 @@ export class SchemaImport {
         return declaration;
     }
 
-    /*
-    private joinDefinitions(rawType: any[]) {
-        return rawType.map((type) => {
-            const subDeclarations = type.objectKeys('').map((subKey) => {
-                const declaration = this.getDeclaration(subKey, type);
-                return `${subKey}${declaration.hasQuestionToken ? '?' : ''}: ${declaration.type}`;
-            });
-
-            return `{${subDeclarations.join(',')}}`;
-        }).join('|');
-    }
-     */
-
     private getType(
         schemaDefinition: ExtendedSchemaDefinition,
         name: string,
@@ -302,46 +281,48 @@ export class SchemaImport {
             if (rawType === Array) {
                 const prefix = `${name}.$`;
                 const elementSchemaDefinition = schema.getDefinition(prefix) as ExtendedSchemaDefinition;
+                let types: string[];
+
                 // Try to see if it references another schema
                 try {
                     const typeName = this.findReferencedDefinition(elementSchemaDefinition.type);
-                    return `${typeName}`;
+                    types = [typeName];
                 } catch (e) {
                     // No problem if type not found, continue
-                }
-                const elementRawType = this.getRawTypes(elementSchemaDefinition);
-                // Try if the array element is a reference to another definition
-                const types = elementRawType.map(subType => {
-                    try {
-                        const typeName = this.findReferencedDefinition(subType);
-                        return `${typeName}`;
-                    } catch (e) {
-                        if (e instanceof TypeNotFoundError) {
-                            if (typeof subType === 'string') {
-                                return `(${subType})`;
+                    const elementRawType = this.getRawTypes(elementSchemaDefinition);
+                    // Try if the array element is a reference to another definition
+                    types = elementRawType.map(subType => {
+                        try {
+                            const typeName = this.findReferencedDefinition(subType);
+                            return `${typeName}`;
+                        } catch (e) {
+                            if (e instanceof TypeNotFoundError) {
+                                if (typeof subType === 'string') {
+                                    return `(${subType})`;
+                                }
+
+                                const subKeys = subType.objectKeys ? subType.objectKeys('') : schema.objectKeys(prefix);
+
+                                // Sub model is detailed
+                                if (subKeys.length > 0) {
+                                    const subDeclarations = subKeys.map((subKey) => {
+                                        const declaration = this.getDeclaration(`${prefix}.${subKey}`, schema);
+                                        return `${subKey}${declaration.hasQuestionToken ? '?' : ''}: ${declaration.type}`;
+                                    });
+
+                                    return `{${subDeclarations.join(',')}}`;
+                                }
+
+                                // Sub model is not detailed
+                                const subDeclaration = this.getDeclaration(prefix, schema);
+                                return `${subDeclaration.type}`;
                             }
-
-                            const subKeys = subType.objectKeys ? subType.objectKeys('') : schema.objectKeys(prefix);
-
-                            // Sub model is detailed
-                            if (subKeys.length > 0) {
-                                const subDeclarations = subKeys.map((subKey) => {
-                                    const declaration = this.getDeclaration(`${prefix}.${subKey}`, schema);
-                                    return `${subKey}${declaration.hasQuestionToken ? '?' : ''}: ${declaration.type}`;
-                                });
-
-                                return `{${subDeclarations.join(',')}}`;
-                            }
-
-                            // Sub model is not detailed
-                            const subDeclaration = this.getDeclaration(prefix, schema);
-                            return `${subDeclaration.type}`;
+                            throw e;
                         }
-                        throw e;
-                    }
-                }).join('|');
+                    });
+                }
 
-                return elementRawType.length > 1 ? `(${types})[]` : `${types}[]`;
+                return types.length > 1 ? `(${types.join('|')})[]` : `${types}[]`;
             }
 
             // TODO support Regexp

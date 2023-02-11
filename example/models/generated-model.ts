@@ -40,8 +40,8 @@ export interface OtherFromJS {
     yetAnotherField: number;
 }
 
-type TwoAlternativesExternal = SubType | FromJS;
+export type TwoAlternativesExternal = SubType | FromJS;
 
 export interface AnArrayWithReferenceToAnotherEntry {
-    theArray?: TwoAlternativesExternal;
+    theArray?: TwoAlternativesExternal[];
 }
