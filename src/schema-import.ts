@@ -23,6 +23,8 @@ class TypeNotFoundError extends Error {
 // Type name might have been defined explicitly
 type ExtendedSchemaDefinition = SchemaDefinition & { typeName?: string };
 
+type Definitions = { type: SimpleSchema }[];
+
 export class SchemaImport {
     private schemas: SchemaMap;
 
@@ -121,19 +123,36 @@ export class SchemaImport {
 
                     for (let typeName in this.schemas) {
                         const schema = this.schemas[typeName];
-                        const classDeclaration = outputFile.addInterface({
-                            name: typeName
-                        });
 
-                        mapNameAndFile.source.getStructure();
+                        if (schema.objectKeys) {
+                            const classDeclaration = outputFile.addInterface({
+                                name: typeName
+                            });
 
-                        classDeclaration.setIsExported(true);
+                            mapNameAndFile.source.getStructure();
 
-                        const keys = schema.objectKeys('');
-                        keys.forEach((key, i) => {
-                            const declaration = this.getDeclaration(key, schema);
-                            classDeclaration.addProperty(declaration);
-                        });
+                            classDeclaration.setIsExported(true);
+                            const keys = schema.objectKeys('');
+                            keys.forEach((key, i) => {
+                                const declaration = this.getDeclaration(key, schema);
+                                classDeclaration.addProperty(declaration);
+                            });
+                        } else {
+                            /*
+                            // This is a SimpleSchemaGroup (interface is not exposed 😞)
+                            const definitions = (schema as unknown as { definitions: { type: SimpleSchema }[] }).definitions;
+
+                            const types = definitions.map((subSchema) =>
+                                this.getType(subSchema, '', schema)
+                            );
+
+                            const [first, second, ...others] = types;
+*/
+                            outputFile.addTypeAlias({
+                                name: typeName,
+                                type: this.getType({ type: schema }, typeName, schema)
+                            });
+                        }
                     }
 
                     outputFile.organizeImports();
@@ -215,7 +234,8 @@ export class SchemaImport {
         return declaration;
     }
 
-    private joinDefinifions(rawType: any[]) {
+    /*
+    private joinDefinitions(rawType: any[]) {
         return rawType.map((type) => {
             const subDeclarations = type.objectKeys('').map((subKey) => {
                 const declaration = this.getDeclaration(subKey, type);
@@ -225,6 +245,7 @@ export class SchemaImport {
             return `{${subDeclarations.join(',')}}`;
         }).join('|');
     }
+     */
 
     private getType(
         schemaDefinition: ExtendedSchemaDefinition,
@@ -235,123 +256,137 @@ export class SchemaImport {
             return schemaDefinition.typeName;
         }
 
-        const rawTypes = this.getRawType(schemaDefinition);
-        if (rawTypes.length > 1) {
-            return this.joinDefinifions(rawTypes);
+        // Try to see if it references another schema
+        try {
+            const typeName = this.findReferencedDefinition(schemaDefinition.type);
+            if (name !== typeName) {
+                return `${typeName}`;
+            }
+        } catch (e) {
+            // No problem if type not found, continue
         }
 
-        const rawType = rawTypes[0];
+        const rawTypes = this.getRawTypes(schemaDefinition);
 
-        if (rawType === Date) {
-            return 'Date';
-        }
-        if (rawType === String) {
-            return 'string';
-        }
-        if (rawType === Boolean) {
-            return 'boolean';
-        }
-        if (rawType === Number || rawType == SimpleSchema.Integer) {
-            return 'number';
-        }
-        if (rawType === Object) {
-            const prefix = `${name}`;
-            const subKeys = schema.objectKeys(prefix);
+        return rawTypes.map(rawType => {
+            if (rawType === Date) {
+                return 'Date';
+            }
+            if (rawType === String) {
+                return 'string';
+            }
+            if (rawType === Boolean) {
+                return 'boolean';
+            }
+            if (rawType === Number || rawType == SimpleSchema.Integer) {
+                return 'number';
+            }
+            if (rawType === Object) {
+                const prefix = `${name}`;
+                const subKeys = schema.objectKeys(prefix);
 
-            // Sub model is detailed
-            if (subKeys.length > 0) {
-                const subDeclarations = subKeys.map((subKey) => {
-                    const declaration = this.getDeclaration(`${prefix}.${subKey}`, schema);
-                    return `${subKey}${declaration.hasQuestionToken ? '?' : ''}: ${declaration.type}`;
-                });
+                // Sub model is detailed
+                if (subKeys.length > 0) {
+                    const subDeclarations = subKeys.map((subKey) => {
+                        const declaration = this.getDeclaration(`${prefix}.${subKey}`, schema);
+                        return `${subKey}${declaration.hasQuestionToken ? '?' : ''}: ${declaration.type}`;
+                    });
 
-                return `{${subDeclarations.join(',')}}`;
+                    return `{${subDeclarations.join(',')}}`;
+                }
+
+                // Sub model is not detailed
+                return 'Object';
             }
 
-            // Sub model is not detailed
-            return 'Object';
-        }
-
-        if (rawType === Array) {
-            const prefix = `${name}.$`;
-            const elementSchemaDefinition = schema.getDefinition(prefix) as ExtendedSchemaDefinition;
-            const elementRawType = this.getRawType(elementSchemaDefinition);
-            // Try if the array element is a reference to another definition
-            const types = elementRawType.map(subType => {
+            if (rawType === Array) {
+                const prefix = `${name}.$`;
+                const elementSchemaDefinition = schema.getDefinition(prefix) as ExtendedSchemaDefinition;
+                // Try to see if it references another schema
                 try {
-                    const typeName = this.findReferencedDefinition(subType);
+                    const typeName = this.findReferencedDefinition(elementSchemaDefinition.type);
                     return `${typeName}`;
                 } catch (e) {
-                    if (e instanceof TypeNotFoundError) {
-                        if (typeof subType === 'string') {
-                            return `(${subType})`;
+                    // No problem if type not found, continue
+                }
+                const elementRawType = this.getRawTypes(elementSchemaDefinition);
+                // Try if the array element is a reference to another definition
+                const types = elementRawType.map(subType => {
+                    try {
+                        const typeName = this.findReferencedDefinition(subType);
+                        return `${typeName}`;
+                    } catch (e) {
+                        if (e instanceof TypeNotFoundError) {
+                            if (typeof subType === 'string') {
+                                return `(${subType})`;
+                            }
+
+                            const subKeys = subType.objectKeys ? subType.objectKeys('') : schema.objectKeys(prefix);
+
+                            // Sub model is detailed
+                            if (subKeys.length > 0) {
+                                const subDeclarations = subKeys.map((subKey) => {
+                                    const declaration = this.getDeclaration(`${prefix}.${subKey}`, schema);
+                                    return `${subKey}${declaration.hasQuestionToken ? '?' : ''}: ${declaration.type}`;
+                                });
+
+                                return `{${subDeclarations.join(',')}}`;
+                            }
+
+                            // Sub model is not detailed
+                            const subDeclaration = this.getDeclaration(prefix, schema);
+                            return `${subDeclaration.type}`;
                         }
+                        throw e;
+                    }
+                }).join('|');
 
-                        const subKeys = subType.objectKeys ? subType.objectKeys('') : schema.objectKeys(prefix);
+                return elementRawType.length > 1 ? `(${types})[]` : `${types}[]`;
+            }
 
-                        // Sub model is detailed
+            // TODO support Regexp
+
+            // This is probably related to another schema in the map
+            try {
+                return this.findReferencedDefinition(rawType);
+            } catch (e) {
+                if (e instanceof TypeNotFoundError) {
+                    if (rawType.getDefinition) {
+                        // This is a SimpleSchema
+                        const definition = rawType.getDefinition();
+                        const subKeys = Object.keys(definition);
+
                         if (subKeys.length > 0) {
-                            const subDeclarations = subKeys.map((subKey) => {
-                                const declaration = this.getDeclaration(`${prefix}.${subKey}`, schema);
-                                return `${subKey}${declaration.hasQuestionToken ? '?' : ''}: ${declaration.type}`;
-                            });
+                            const subDeclarations = subKeys
+                                .filter((subKey) => !subKey.includes('$'))
+                                .map((subKey) => {
+                                    const declaration = this.getDeclarationFromDefinition(definition[subKey], subKey, rawType);
+                                    return `${subKey}${declaration.hasQuestionToken ? '?' : ''}: ${declaration.type}`;
+                                });
 
                             return `{${subDeclarations.join(',')}}`;
                         }
 
-                        // Sub model is not detailed
-                        const subDeclaration = this.getDeclaration(prefix, schema);
-                        return `${subDeclaration.type}`;
-                    }
-                    throw e;
-                }
-            }).join('|');
-
-            return elementRawType.length > 1 ? `(${types})[]` : `${types}[]`;
-        }
-
-        // TODO support Regexp
-
-        // This is probably related to another schema in the map
-        try {
-            return this.findReferencedDefinition(rawType);
-        } catch (e) {
-            if (e instanceof TypeNotFoundError) {
-                if (rawType.getDefinition) {
-                    // This is a SimpleSchema
-                    const definition = rawType.getDefinition();
-                    const subKeys = Object.keys(definition);
-
-                    if (subKeys.length > 0) {
-                        const subDeclarations = subKeys
-                            .filter((subKey) => !subKey.includes('$'))
-                            .map((subKey) => {
-                                const declaration = this.getDeclarationFromDefinition(definition[subKey], subKey, rawType);
-                                return `${subKey}${declaration.hasQuestionToken ? '?' : ''}: ${declaration.type}`;
-                            });
-
-                        return `{${subDeclarations.join(',')}}`;
+                        return 'Object';
                     }
 
-                    return 'Object';
+                    // Let's say it's an enum
+                    return Object.values(rawType)
+                        .map((v) => {
+                            // If it's an enum then the value is a scalar
+                            if (typeof v === 'object') {
+                                throw e;
+                            }
+                            return JSON.stringify(v);
+                        })
+                        .join(' | ');
                 }
-
-                // Let's say it's an enum
-                return Object.values(rawType)
-                    .map((v) => {
-                        // If it's an enum then the value is a scalar
-                        if (typeof v === 'object') {
-                            throw e;
-                        }
-                        return JSON.stringify(v);
-                    })
-                    .join(' | ');
+                throw e;
             }
-            throw e;
-        }
+        }).join('|');
     }
 
-    private getRawType(schemaDefinition: SchemaDefinition & { typeName?: string }): any[] {
+    private getRawTypes(schemaDefinition: SchemaDefinition & { typeName?: string }): any[] {
         if (schemaDefinition.type.length > 1) {
             // OneOf() (multiple alternatives)
             return schemaDefinition.type
@@ -365,15 +400,29 @@ export class SchemaImport {
 
         // In case it's a SimpleSchemaGroup
         if (rawType.definitions) {
-            rawType = rawType.definitions[0].type;
+            return rawType.definitions.map(d => d.type);
         }
         return [rawType];
+    }
+
+    private definitionsEqual(schemasA: Definitions, schemasB: Definitions) {
+        // Make sure are the same size, and there are no 2 types that are different
+        return schemasA?.length === schemasB?.length
+            && schemasA?.find((schemaA, index) => schemasB[index].type !== schemaA.type) === undefined;
     }
 
     private findReferencedDefinition(typeDefinition: Object): string | undefined {
         for (let typeName in this.schemas) {
             const schema = this.schemas[typeName];
             if (typeDefinition === schema) {
+                return typeName;
+            }
+
+            const typeArray = typeDefinition as unknown as Definitions;
+            const schemaArray = schema as unknown as { definitions: Definitions };
+
+            if (typeArray.length && schemaArray.definitions?.length
+                && this.definitionsEqual(typeArray, schemaArray.definitions)) {
                 return typeName;
             }
         }

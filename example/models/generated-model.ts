@@ -28,7 +28,6 @@ export interface Foo {
     anEnumWithType: MyEnum;
     aPropertyWithTwoAlternatives: { name: string, value?: number } | { date: Date };
     anArrayWithTwoAlternatives: ({ name: string, value?: number } | { date: Date })[];
-    anArrayWithTwoAlternativesExternals?: (SubType | FromJS)[];
     aSubSchemaExternal: SubType;
     aSubSchemaInternal: { aNumber: number, aString?: string };
     anArrayOfExternal?: SubType[];
@@ -39,4 +38,10 @@ export interface OtherFromJS {
     aJavascriptNumber: number;
     aJavascriptString?: string;
     yetAnotherField: number;
+}
+
+type TwoAlternativesExternal = SubType | FromJS;
+
+export interface AnArrayWithReferenceToAnotherEntry {
+    theArray?: TwoAlternativesExternal;
 }

@@ -78,7 +78,6 @@ schemas['Foo'] = new SimpleSchema({
         // @ts-ignore
         typeName: 'MyEnum' // Will reference MyEnum type directly
     },
-    // @ts-ignore TODO for some reason the typings from SimpleSchema are incorrect
     aPropertyWithTwoAlternatives: SimpleSchema.oneOf(
         // @ts-ignore TODO for some reason the typings from SimpleSchema are incorrect
         new SimpleSchema({
@@ -97,7 +96,6 @@ schemas['Foo'] = new SimpleSchema({
         })
     ),
     anArrayWithTwoAlternatives: Array,
-    // @ts-ignore TODO for some reason the typings from SimpleSchema are incorrect
     'anArrayWithTwoAlternatives.$': SimpleSchema.oneOf(
         // @ts-ignore TODO for some reason the typings from SimpleSchema are incorrect
         new SimpleSchema({
@@ -114,16 +112,6 @@ schemas['Foo'] = new SimpleSchema({
                 type: Date
             }
         })
-    ),
-    anArrayWithTwoAlternativesExternals: {
-        type: Array,
-        optional: true
-    },
-    // @ts-ignore TODO for some reason the typings from SimpleSchema are incorrect
-    'anArrayWithTwoAlternativesExternals.$': SimpleSchema.oneOf(
-        // @ts-ignore TODO for some reason the typings from SimpleSchema are incorrect
-        schemas['SubType'],
-        schemas['FromJS']
     ),
     aSubSchemaExternal: schemas['SubType'],
     aSubSchemaInternal: new SimpleSchema({
@@ -166,4 +154,18 @@ schemas['Foo'] = new SimpleSchema({
 schemas['OtherFromJS'] = new SimpleSchema({
     ...definition,
     yetAnotherField: Number
+});
+
+schemas['TwoAlternativesExternal'] = SimpleSchema.oneOf(
+    // @ts-ignore TODO for some reason the typings from SimpleSchema are incorrect
+    schemas['SubType'],
+    schemas['FromJS']
+);
+
+schemas['AnArrayWithReferenceToAnotherEntry'] = new SimpleSchema({
+    theArray: {
+        type: Array,
+        optional: true
+    },
+    'theArray.$': schemas['TwoAlternativesExternal']
 });
